@@ -1,0 +1,10 @@
+*.json
+*.psd
+
+config.ini
+
+_env
+z_backups
+z_fizz_challenges
+z_imgs
+z_Kivy_examples
