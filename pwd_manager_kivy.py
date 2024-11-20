@@ -191,7 +191,7 @@ Kivy 2.3.0 and Kivy MD 2.0.1 (dev0).
 And love. And time. And tears of blood...
 
 The code is Open Source, feel free to study it, improve the app or reuse part of it. Do not hesitate to contact me for a collab'!
-github.com/munchou/pwdzmanager
+github.com/munchou/zupasswords-manager
 
 Commercial use in any way is NOT allowed. Kindly contact before backstabbing, I'll put on my shiniest Leonardo's shell. Thanks.
 
