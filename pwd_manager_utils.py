@@ -213,23 +213,30 @@ def add_user(
         parser.write(configfile)
 
 
-def check_json_entries(username, app_name):
-    try:
-        with open(f"{username}.json", "r") as file:
-            user_data = json.load(file)
-            if app_name in user_data:
+def app_name_exists(app_name, button_text, listscreen):
+    username = hasher(os.environ.get("pwdzmanuser"), "")
+    with open(f"{username}.json", "r") as file:
+        user_data = json.load(file)
+        apps_names = [decrypt_data(bytes(item[2:-1], "utf-8")) for item in user_data]
+        print("apps_names:", apps_names)
+        if app_name in apps_names and button_text != "UPDATE":
+            show_message(
+                "ERROR",
+                f"{app_name} has already been added. Please update it by selecting it in your list and then clicking the little pencil.",
+            )
+            return True
+        elif button_text == "UPDATE":
+            if app_name in apps_names and app_name != listscreen.selected_item:
                 show_message(
                     "ERROR",
-                    f"{app_name} has already been added. Please update it by selecting it in your list and then clicking the little pencil.",
+                    f"{app_name} is already in use, please choose another name.",
                 )
-                return False
-            return True
-    except FileNotFoundError:
-        return "notfound"
+                return True
+
+        return False
 
 
 def add_to_json(id, app_name, app_user, app_pwd, app_info, app_icon):
-    app_doesnt_exist = True
     username = hasher(os.environ.get("pwdzmanuser"), "")
 
     if not exists(f"{username}.json"):
@@ -252,27 +259,19 @@ def add_to_json(id, app_name, app_user, app_pwd, app_info, app_icon):
     else:
         with open(f"{username}.json", "r") as file:
             user_data = json.load(file)
-            if app_name in user_data:
-                show_message(
-                    "ERROR",
-                    f"{app_name} has already been added. Please update it by selecting it in your list and then clicking the little pencil.",
-                )
-                app_doesnt_exist = False
-            else:
-                user_data.update(
-                    {
-                        str(encrypt_data(app_name)): [
-                            str(encrypt_data(app_user)),
-                            str(encrypt_data(app_pwd)),
-                            str(encrypt_data(app_info)),
-                            app_icon,
-                            id,
-                        ]
-                    }
-                )
-        if app_doesnt_exist:
-            with open(f"{username}.json", "w") as file:
-                json.dump(user_data, file, indent=4)
+            user_data.update(
+                {
+                    str(encrypt_data(app_name)): [
+                        str(encrypt_data(app_user)),
+                        str(encrypt_data(app_pwd)),
+                        str(encrypt_data(app_info)),
+                        app_icon,
+                        id,
+                    ]
+                }
+            )
+        with open(f"{username}.json", "w") as file:
+            json.dump(user_data, file, indent=4)
 
 
 def load_user_json():
@@ -297,6 +296,9 @@ def update_json(listscreen, id, app_name, app_user, app_pwd, app_info, app_icon)
     username = hasher(os.environ.get("pwdzmanuser"), "")
     selected_item = listscreen.selected_item
     entries_list = listscreen.ids.entries_list
+
+    # if app_name_exists(username, app_name):
+    #     return True
 
     for child in entries_list.children:
         if child.app_name == selected_item:

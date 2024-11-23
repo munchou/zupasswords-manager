@@ -104,6 +104,9 @@ class AddEntryCard(MDCard):
         app = MDApp.get_running_app()
         listscreen = app.root.current_screen
 
+        if pwd_manager_utils.app_name_exists(app_name, self.button_text, listscreen):
+            return
+
         if self.button_text == "UPDATE":
             pwd_manager_utils.update_json(
                 listscreen,

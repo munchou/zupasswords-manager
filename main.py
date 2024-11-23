@@ -1,47 +1,27 @@
-from kivy_garden.frostedglass import FrostedGlass
-
 from kivymd.app import MDApp
 
 # from kivymd.tools.hotreload.app import MDApp
-
-from kivymd.uix.boxlayout import MDBoxLayout
+# from kivy.event import EventDispatcher
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.screenmanager import ScreenManager
-from kivymd.uix.list import (
-    MDList,
-    MDListItem,
-    MDListItemHeadlineText,
-    MDListItemSupportingText,
-    MDListItemTrailingIcon,
-)
-from kivymd.uix.textfield import MDTextField
-from kivymd.uix.appbar import MDActionBottomAppBarButton
 
-from kivy.event import EventDispatcher
-from kivy.uix.scrollview import ScrollView
-from kivy.uix.effectwidget import EffectWidget, HorizontalBlurEffect, VerticalBlurEffect
-from kivy.clock import Clock
+
 from kivy.lang import Builder
-from kivy.uix.behaviors import FocusBehavior
-from kivy.uix.recycleboxlayout import RecycleBoxLayout
-from kivy.uix.recycleview.layout import LayoutSelectionBehavior
-from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.core.window import Window
-from kivy.uix.screenmanager import ScreenManager  # , Screen
-from kivy.properties import (
-    ObjectProperty,
-    StringProperty,
-    ListProperty,
-    BooleanProperty,
-)
-import json, os
-from os.path import exists
-import platform
+from kivy.uix.screenmanager import ScreenManager
+from kivy.properties import ObjectProperty
+import os, sys
 import plyer
 import pwd_manager_utils
 from pwd_manager_listscreen import ListScreen
 
-Window.size = 414, 736
+# Galazy 22 resoltuion: 1080*2340
+# minus top and bottom bars -> Wndow.size = 1080, 2115
+if hasattr(sys, "getandriodapilevel"):
+    Window.fullscreen = True
+    Window.maximize()
+else:
+    Window.size = 414, 736
 
 
 def unload_file():
@@ -98,7 +78,7 @@ class LoginScreen(MDScreen):
                 pwd_manager_utils.back_data_prompt(username_text)
                 # pwd_manager_utils.backup_data(username_text, current_user)
             else:
-                # self.manager.add_widget(ListScreen(name="listscreen"))
+                self.manager.add_widget(ListScreen(name="listscreen"))
 
                 self.manager.current = "listscreen"
             # else:
@@ -175,7 +155,13 @@ class LoginScreen(MDScreen):
         current_theme = pwd_manager_utils.load_theme()
         if theme != current_theme:
             pwd_manager_utils.update_theme(theme)
-            app.screenmanager.remove_widget(app.screenmanager.get_screen("listscreen"))
+            try:
+                app.screenmanager.remove_widget(
+                    app.screenmanager.get_screen("listscreen")
+                )
+            except:
+                print("The list screen wasn't removed as it hadn't been created yet.")
+
             app.screenmanager.clear_widgets()
             Builder.unload_file("zupasswordz.kv")
             app.stop()
@@ -197,6 +183,11 @@ Commercial use in any way is NOT allowed. Kindly contact before backstabbing, I'
 
 Special thanks to Martin (OWDD), Snu and Cheaterman (both Kivy Discord)""",
         )
+
+
+# import pyautogui
+
+# print(pyautogui.size())
 
 
 class PassManagerApp(MDApp):
@@ -298,7 +289,7 @@ class PassManagerApp(MDApp):
         # End of colors
 
         self.screenmanager.add_widget(LoginScreen(name="loginscreen"))
-        self.screenmanager.add_widget(ListScreen(name="listscreen"))
+        # self.screenmanager.add_widget(ListScreen(name="listscreen"))
         return self.screenmanager
 
     # def restart(self):

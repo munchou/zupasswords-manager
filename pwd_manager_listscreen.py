@@ -3,6 +3,14 @@ from kivy_garden.frostedglass import FrostedGlass
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton, MDButtonIcon, MDButtonText
+from kivymd.uix.textfield import (
+    MDTextField,
+    MDTextFieldLeadingIcon,
+    MDTextFieldHintText,
+    MDTextFieldHelperText,
+    MDTextFieldTrailingIcon,
+    MDTextFieldMaxLengthText,
+)
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.appbar import MDActionBottomAppBarButton
 from kivymd.uix.screenmanager import ScreenManager
@@ -16,12 +24,7 @@ from kivymd.uix.card import MDCard
 # from kivymd.uix.button import MDRectangleFlatButton
 from kivy.uix.button import Button
 from kivy.uix.label import Label
-from kivymd.uix.list import (
-    MDListItemHeadlineText,
-    MDListItemSupportingText,
-    MDListItemTrailingIcon,
-)
-
+from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import (
     ObjectProperty,
     StringProperty,
@@ -37,6 +40,134 @@ from pwd_manager_addentrycard import AddEntryCard
 class BottomAppBarButton(MDActionBottomAppBarButton):
     theme_icon_color = "Custom"
     icon_color = "#8A8D79"
+
+
+class SearchBar(MDTextField):
+    theme_bg_color = "Custom"
+    fill_color_normal = "#FFFFFF"
+
+    available_apps = ListProperty()
+    av_apps_1 = ListProperty()
+    av_apps_2 = ListProperty()
+    av_apps_3 = ListProperty()
+    av_apps_4 = ListProperty()
+    av_apps_ids = ListProperty()
+
+    def __init__(self, **kwargs):
+        super(SearchBar, self).__init__(**kwargs)
+        user_data = pwd_manager_utils.load_user_json()
+        self.available_apps = [
+            pwd_manager_utils.decrypt_data(bytes(item[2:-1], "utf-8")).casefold()
+            for item in user_data
+        ]
+        self.av_apps_ids = [user_data[item][4] for item in user_data]
+        self.av_apps_1 = [app[0].casefold() for app in self.available_apps]
+        self.av_apps_2 = [app[:2].casefold() for app in self.available_apps]
+        self.av_apps_3 = [app[:3].casefold() for app in self.available_apps]
+        self.av_apps_4 = [app[:4].casefold() for app in self.available_apps]
+        self.av_apps = {
+            1: self.av_apps_1,
+            2: self.av_apps_2,
+            3: self.av_apps_3,
+            4: self.av_apps_4,
+        }
+
+    def on_focus(self, instance, input_text):
+        super(SearchBar, self).on_focus(instance, input_text)
+
+    def get_whole_list(self):
+        app = MDApp.get_running_app()
+        listscreen = app.root.current_screen
+        entries_list = listscreen.ids.entries_list
+        user_data = pwd_manager_utils.load_user_json()
+
+        for item in user_data:
+            id = user_data[item][4]
+            app_name = pwd_manager_utils.decrypt_data(bytes(item[2:-1], "utf-8"))
+            app_user = pwd_manager_utils.decrypt_data(
+                bytes(user_data[item][0][2:-1], "utf-8")
+            )
+            app_pwd = pwd_manager_utils.decrypt_data(
+                bytes(user_data[item][1][2:-1], "utf-8")
+            )
+            app_info = pwd_manager_utils.decrypt_data(
+                bytes(user_data[item][2][2:-1], "utf-8")
+            )
+            app_icon = user_data[item][3]
+
+            pwd_manager_utils.add_entry_list(
+                entries_list,
+                id,
+                app_name,
+                app_user,
+                app_pwd,
+                app_info,
+                app_icon,
+            )
+
+        entries_list.children = sorted(
+            entries_list.children,
+            key=lambda x: x.app_name.casefold(),
+            reverse=True,
+        )
+
+    def on_text(self, instance, input_text):
+        print("ON TEXT")
+        user_data = pwd_manager_utils.load_user_json()
+
+        app = MDApp.get_running_app()
+        listscreen = app.root.current_screen
+        entries_list = listscreen.ids.entries_list
+
+        if input_text == "":
+            entries_list.clear_widgets()
+            self.get_whole_list()
+            # entries_list.disabled = True
+            # entries_list.opacity = 0
+            # entries_list.disabled = False
+            # entries_list.opacity = 1
+
+        elif len(input_text) < 5:
+            entries_list.clear_widgets()
+            current_list = self.av_apps[len(input_text)]
+            if input_text in current_list:
+                for h in range(len(current_list)):
+                    app = current_list[h]
+                    if app.startswith(input_text):
+                        for item in user_data:
+                            if user_data[item][4] == self.av_apps_ids[h]:
+                                id = user_data[item][4]
+                                app_name = pwd_manager_utils.decrypt_data(
+                                    bytes(item[2:-1], "utf-8")
+                                )
+                                if not app_name.casefold().startswith(input_text):
+                                    continue
+                                app_user = pwd_manager_utils.decrypt_data(
+                                    bytes(user_data[item][0][2:-1], "utf-8")
+                                )
+                                app_pwd = pwd_manager_utils.decrypt_data(
+                                    bytes(user_data[item][1][2:-1], "utf-8")
+                                )
+                                app_info = pwd_manager_utils.decrypt_data(
+                                    bytes(user_data[item][2][2:-1], "utf-8")
+                                )
+                                app_icon = user_data[item][3]
+
+                                pwd_manager_utils.add_entry_list(
+                                    entries_list,
+                                    id,
+                                    app_name,
+                                    app_user,
+                                    app_pwd,
+                                    app_info,
+                                    app_icon,
+                                )
+
+                            entries_list.children = sorted(
+                                entries_list.children,
+                                key=lambda x: x.app_name.casefold(),
+                                reverse=True,
+                            )
 
 
 class ListScreen(MDScreen):
@@ -114,7 +245,6 @@ class ListScreen(MDScreen):
         icons = ["pencil", "android", "power"]
 
         user_data = pwd_manager_utils.load_user_json()
-        # key = pwd_manager_utils.make_key()
         for item in user_data:
             id = user_data[item][4]
             app_name = pwd_manager_utils.decrypt_data(bytes(item[2:-1], "utf-8"))
@@ -192,3 +322,6 @@ class ListScreen(MDScreen):
         self.selected_item = ""
         self.ids.entries_list.clear_widgets()
         self.manager.current = "loginscreen"
+        self.manager.get_screen("listscreen").clear_widgets()
+        self.manager.remove_widget(self.manager.get_screen("listscreen"))
+        # app.screenmanager.remove_widget(app.screenmanager.get_screen("listscreen")
