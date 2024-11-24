@@ -43,56 +43,54 @@ class BottomAppBarButton(MDActionBottomAppBarButton):
 
 
 class SearchBar(MDTextField):
-    theme_bg_color = "Custom"
-    fill_color_normal = "#FFFFFF"
+    # theme_bg_color = "Custom"
+    # fill_color_normal = "#FFFFFF"
 
-    available_apps = ListProperty()
-    av_apps_1 = ListProperty()
-    av_apps_2 = ListProperty()
-    av_apps_3 = ListProperty()
-    av_apps_4 = ListProperty()
-    av_apps_ids = ListProperty()
+    available_apps = None
+    av_apps_1 = None
+    av_apps_2 = None
+    av_apps_3 = None
+    av_apps_4 = None
+    av_apps_ids = None
+    master_list = None
 
     def __init__(self, **kwargs):
         super(SearchBar, self).__init__(**kwargs)
-        user_data = pwd_manager_utils.load_user_json()
-        self.available_apps = [
-            pwd_manager_utils.decrypt_data(bytes(item[2:-1], "utf-8")).casefold()
-            for item in user_data
-        ]
-        self.av_apps_ids = [user_data[item][4] for item in user_data]
-        self.av_apps_1 = [app[0].casefold() for app in self.available_apps]
-        self.av_apps_2 = [app[:2].casefold() for app in self.available_apps]
-        self.av_apps_3 = [app[:3].casefold() for app in self.available_apps]
-        self.av_apps_4 = [app[:4].casefold() for app in self.available_apps]
-        self.av_apps = {
-            1: self.av_apps_1,
-            2: self.av_apps_2,
-            3: self.av_apps_3,
-            4: self.av_apps_4,
-        }
+        self.master_list = (
+            MDApp.get_running_app().screenmanager.get_screen("loginscreen").master_list
+        )
 
     def on_focus(self, instance, input_text):
         super(SearchBar, self).on_focus(instance, input_text)
+
+    def refresh_lists(self, new_list):
+        self.master_list = new_list
+        available_apps = [item.casefold() for item in new_list]
+        av_apps_ids = [new_list[item][4] for item in new_list]
+        av_apps_1 = [app[0].casefold() for app in available_apps]
+        av_apps_2 = [app[:2].casefold() for app in available_apps]
+        av_apps_3 = [app[:3].casefold() for app in available_apps]
+        av_apps_4 = [app[:4].casefold() for app in available_apps]
+        av_apps = {
+            1: av_apps_1,
+            2: av_apps_2,
+            3: av_apps_3,
+            4: av_apps_4,
+        }
+        return av_apps_ids, av_apps
 
     def get_whole_list(self):
         app = MDApp.get_running_app()
         listscreen = app.root.current_screen
         entries_list = listscreen.ids.entries_list
-        user_data = pwd_manager_utils.load_user_json()
+        user_data = self.master_list
 
         for item in user_data:
             id = user_data[item][4]
-            app_name = pwd_manager_utils.decrypt_data(bytes(item[2:-1], "utf-8"))
-            app_user = pwd_manager_utils.decrypt_data(
-                bytes(user_data[item][0][2:-1], "utf-8")
-            )
-            app_pwd = pwd_manager_utils.decrypt_data(
-                bytes(user_data[item][1][2:-1], "utf-8")
-            )
-            app_info = pwd_manager_utils.decrypt_data(
-                bytes(user_data[item][2][2:-1], "utf-8")
-            )
+            app_name = item
+            app_user = user_data[item][0]
+            app_pwd = user_data[item][1]
+            app_info = user_data[item][2]
             app_icon = user_data[item][3]
 
             pwd_manager_utils.add_entry_list(
@@ -112,8 +110,8 @@ class SearchBar(MDTextField):
         )
 
     def on_text(self, instance, input_text):
-        print("ON TEXT")
-        user_data = pwd_manager_utils.load_user_json()
+        user_data = self.master_list
+        print("\tlist:\n", user_data)
 
         app = MDApp.get_running_app()
         listscreen = app.root.current_screen
@@ -122,14 +120,12 @@ class SearchBar(MDTextField):
         if input_text == "":
             entries_list.clear_widgets()
             self.get_whole_list()
-            # entries_list.disabled = True
-            # entries_list.opacity = 0
-            # entries_list.disabled = False
-            # entries_list.opacity = 1
 
         elif len(input_text) < 5:
             entries_list.clear_widgets()
+            self.av_apps_ids, self.av_apps = self.refresh_lists(self.master_list)
             current_list = self.av_apps[len(input_text)]
+
             if input_text in current_list:
                 for h in range(len(current_list)):
                     app = current_list[h]
@@ -137,20 +133,12 @@ class SearchBar(MDTextField):
                         for item in user_data:
                             if user_data[item][4] == self.av_apps_ids[h]:
                                 id = user_data[item][4]
-                                app_name = pwd_manager_utils.decrypt_data(
-                                    bytes(item[2:-1], "utf-8")
-                                )
+                                app_name = item
                                 if not app_name.casefold().startswith(input_text):
                                     continue
-                                app_user = pwd_manager_utils.decrypt_data(
-                                    bytes(user_data[item][0][2:-1], "utf-8")
-                                )
-                                app_pwd = pwd_manager_utils.decrypt_data(
-                                    bytes(user_data[item][1][2:-1], "utf-8")
-                                )
-                                app_info = pwd_manager_utils.decrypt_data(
-                                    bytes(user_data[item][2][2:-1], "utf-8")
-                                )
+                                app_user = user_data[item][0]
+                                app_pwd = user_data[item][1]
+                                app_info = user_data[item][2]
                                 app_icon = user_data[item][3]
 
                                 pwd_manager_utils.add_entry_list(
@@ -178,7 +166,6 @@ class ListScreen(MDScreen):
 
     def __init__(self, **kwargs):
         super(ListScreen, self).__init__(**kwargs)
-        # self.new_entry = None
 
     def bottom_bar_change(self, status):
         if status:
@@ -244,19 +231,17 @@ class ListScreen(MDScreen):
 
         icons = ["pencil", "android", "power"]
 
-        user_data = pwd_manager_utils.load_user_json()
+        user_data = (
+            MDApp.get_running_app().screenmanager.get_screen("loginscreen").master_list
+        )
+
+        # user_data = pwd_manager_utils.load_user_json()
         for item in user_data:
             id = user_data[item][4]
-            app_name = pwd_manager_utils.decrypt_data(bytes(item[2:-1], "utf-8"))
-            app_user = pwd_manager_utils.decrypt_data(
-                bytes(user_data[item][0][2:-1], "utf-8")
-            )
-            app_pwd = pwd_manager_utils.decrypt_data(
-                bytes(user_data[item][1][2:-1], "utf-8")
-            )
-            app_info = pwd_manager_utils.decrypt_data(
-                bytes(user_data[item][2][2:-1], "utf-8")
-            )
+            app_name = item
+            app_user = user_data[item][0]
+            app_pwd = user_data[item][1]
+            app_info = user_data[item][2]
             app_icon = user_data[item][3]
 
             pwd_manager_utils.add_entry_list(
@@ -318,6 +303,11 @@ class ListScreen(MDScreen):
         self.reset_selected()
 
     def logout(self):
+        """Logout method - Clears the main list created upon user's logging in.
+        Resets the env variable user. Clears the apps list. Removes the widgets
+        from the list screen as well as the list screen itself.
+        Gets back to the login screen"""
+        MDApp.get_running_app().screenmanager.get_screen("loginscreen").master_list = {}
         os.environ["pwdzmanuser"] = ""
         self.selected_item = ""
         self.ids.entries_list.clear_widgets()

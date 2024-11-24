@@ -101,8 +101,11 @@ class AddEntryCard(MDCard):
             )
 
     def add_entry(self, id, app_name, app_user, app_pwd, app_info, app_icon):
+        from pwd_manager_listscreen import SearchBar
+
         app = MDApp.get_running_app()
         listscreen = app.root.current_screen
+        master_list = SearchBar().master_list
 
         if pwd_manager_utils.app_name_exists(app_name, self.button_text, listscreen):
             return
@@ -117,10 +120,28 @@ class AddEntryCard(MDCard):
                 app_info,
                 app_icon,
             )
+
+            master_list.pop(app_name)
+            master_list[app_name] = [
+                app_user,
+                app_pwd,
+                app_info,
+                app_icon,
+                id,
+            ]
+
         else:
             pwd_manager_utils.add_to_json(
                 id, app_name, app_user, app_pwd, app_info, app_icon
             )
+            master_list[app_name] = [
+                app_user,
+                app_pwd,
+                app_info,
+                app_icon,
+                id,
+            ]
+            SearchBar().refresh_lists(master_list)
 
         app = MDApp.get_running_app()
         listscreen = app.root.current_screen

@@ -1,30 +1,35 @@
 import hashlib
 import plyer
 from datetime import datetime
-import json
-import os
+import json, os
 from os.path import exists
 import platform
 import configparser
 import bcrypt
 import base64
 import gc
+
 from configparser import ConfigParser
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+# from androidstorage4kivy import (
+#     SharedStorage,
+#     Chooser,
+# )  # all the job is done via these two modules
 
 from kivymd.app import MDApp
 from kivymd.uix.list import (
     MDListItemHeadlineText,
     MDListItemTrailingIcon,
 )
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.label import MDLabel
 
 from kivy.uix.button import Button
 from kivy.uix.popup import Popup
-
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.label import MDLabel
+from kivy.utils import platform as kv_platform
 
 from pwd_manager_addentrycard import ItemBind
 
@@ -468,8 +473,13 @@ def backup_data(username):
     user_hashed = hasher(username, "")
     filename = f'{username}_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
     backup_file = open(filename, "w")
+    save_path = ""
 
-    with open(f"{user_hashed}.json", "r") as file:
+    if kv_platform == "android":
+        # import android
+        save_path = "/storage/emulate/0/Download/"
+
+    with open(f"{save_path}{user_hashed}.json", "r") as file:
         user_data = json.load(file)
         for item in user_data:
             app_name = decrypt_data(bytes(item[2:-1], "utf-8"))

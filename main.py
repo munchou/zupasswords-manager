@@ -15,9 +15,9 @@ import plyer
 import pwd_manager_utils
 from pwd_manager_listscreen import ListScreen
 
-# Galazy 22 resoltuion: 1080*2340
+# Galazy 22 resolution: 1080*2340
 # minus top and bottom bars -> Wndow.size = 1080, 2115
-if hasattr(sys, "getandriodapilevel"):
+if hasattr(sys, "getandroidapilevel"):
     Window.fullscreen = True
     Window.maximize()
 else:
@@ -46,6 +46,7 @@ class LoginScreen(MDScreen):
     input_color = 0, 0.2, 0, 0.5
     btn_color = 0.2, 0, 0, 1
     white = 1, 1, 1, 0.5
+    master_list = {}
 
     def __init__(self, **kwargs):
         super(LoginScreen, self).__init__(**kwargs)
@@ -61,6 +62,35 @@ class LoginScreen(MDScreen):
     def confirm_backup(self, confirmation):
         return confirmation
 
+    def make_master_list(self):
+        user_data = pwd_manager_utils.load_user_json()
+        for item in user_data:
+            id = user_data[item][4]
+            app_name = pwd_manager_utils.decrypt_data(bytes(item[2:-1], "utf-8"))
+            app_user = pwd_manager_utils.decrypt_data(
+                bytes(user_data[item][0][2:-1], "utf-8")
+            )
+            app_pwd = pwd_manager_utils.decrypt_data(
+                bytes(user_data[item][1][2:-1], "utf-8")
+            )
+            app_info = pwd_manager_utils.decrypt_data(
+                bytes(user_data[item][2][2:-1], "utf-8")
+            )
+            app_icon = user_data[item][3]
+
+            self.master_list[app_name] = [
+                app_user,
+                app_pwd,
+                app_info,
+                app_icon,
+                id,
+            ]
+
+        # self.master_list = sorted(
+        #     self.master_list,
+        #     reverse=True,
+        # )
+
     def user_login(self, export):
         username_text = self.username_input.text
         current_user = pwd_manager_utils.hasher(username_text, "")
@@ -73,11 +103,13 @@ class LoginScreen(MDScreen):
             os.environ["pwdzmanuser"] = username_text
             os.environ["pwdzmanpwd"] = password_text
             current_user_env = os.environ["pwdzmanuser"]
+            self.make_master_list()
             # print(f"\n\t{current_user_env}'s password:", os.environ["pwdzmanpwd"])
             if export:
                 pwd_manager_utils.back_data_prompt(username_text)
                 # pwd_manager_utils.backup_data(username_text, current_user)
             else:
+
                 self.manager.add_widget(ListScreen(name="listscreen"))
 
                 self.manager.current = "listscreen"
