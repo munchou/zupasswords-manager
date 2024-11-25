@@ -91,7 +91,7 @@ class LoginScreen(MDScreen):
         #     reverse=True,
         # )
 
-    def user_login(self, export):
+    def user_login(self, export, import_backup):
         username_text = self.username_input.text
         current_user = pwd_manager_utils.hasher(username_text, "")
         password_text = self.password_input_login.text
@@ -103,15 +103,16 @@ class LoginScreen(MDScreen):
             os.environ["pwdzmanuser"] = username_text
             os.environ["pwdzmanpwd"] = password_text
             current_user_env = os.environ["pwdzmanuser"]
-            self.make_master_list()
             # print(f"\n\t{current_user_env}'s password:", os.environ["pwdzmanpwd"])
             if export:
                 pwd_manager_utils.back_data_prompt(username_text)
                 # pwd_manager_utils.backup_data(username_text, current_user)
+            elif import_backup:
+                print("IMPORTING BACKED UP DATA")
+                pwd_manager_utils.load_backup_data(username_text)
             else:
-
+                self.make_master_list()
                 self.manager.add_widget(ListScreen(name="listscreen"))
-
                 self.manager.current = "listscreen"
             # else:
             #     pwd_manager_utils.show_message(
@@ -135,8 +136,7 @@ class LoginScreen(MDScreen):
 
         if not pwd_manager_utils.check_input(username_text):
             pwd_manager_utils.show_message(
-                "ERROR",
-                "Invalid characters in the username 123490 Invalid characters\nin the username 123490 Invalid\ncharacters in \n the username 123490",
+                "ERROR", "Invalid characters in the username"
             )
             user_data = False
         else:

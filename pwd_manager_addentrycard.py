@@ -121,7 +121,7 @@ class AddEntryCard(MDCard):
                 app_icon,
             )
 
-            master_list.pop(app_name)
+            master_list.pop(listscreen.selected_item)
             master_list[app_name] = [
                 app_user,
                 app_pwd,
@@ -143,8 +143,6 @@ class AddEntryCard(MDCard):
             ]
             SearchBar().refresh_lists(master_list)
 
-        app = MDApp.get_running_app()
-        listscreen = app.root.current_screen
         entries_list = listscreen.ids.entries_list
 
         if self.button_text == "UPDATE":

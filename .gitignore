@@ -2,6 +2,8 @@ __pycache__
 
 *.json
 *.psd
+*.txt
+*.pyc
 
 z_kivymd_icons_view.*
 config.ini

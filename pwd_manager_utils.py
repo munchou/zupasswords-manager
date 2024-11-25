@@ -1,7 +1,7 @@
 import hashlib
 import plyer
 from datetime import datetime
-import json, os
+import json, os, uuid
 from os.path import exists
 import platform
 import configparser
@@ -68,10 +68,15 @@ def process_message(message):
 def show_message(title, message):
     message, height = process_message(message)
     backup = False
+    import_backup = False
 
     if "[backup]" in title:
         title = title.replace("[backup]", "")
         backup = True
+
+    if "[import]" in title:
+        title = title.replace("[import]", "")
+        import_backup = True
 
     btn_ok = Button(
         text="OK" if not backup else "CONFIRM BACK UP",
@@ -91,7 +96,6 @@ def show_message(title, message):
         pos_hint={"center_x": 0.5},
     )
 
-    # layout = MDBoxLayout(orientation="vertical")
     layout = MDBoxLayout(
         MDLabel(
             text=message,
@@ -471,29 +475,122 @@ def back_data_prompt(username):
 
 def backup_data(username):
     user_hashed = hasher(username, "")
+
     filename = f'{username}_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
-    backup_file = open(filename, "w")
     save_path = ""
-
     if kv_platform == "android":
-        # import android
         save_path = "/storage/emulate/0/Download/"
+    backup_file = open(f"{save_path}{filename}", "w")
 
-    with open(f"{save_path}{user_hashed}.json", "r") as file:
+    with open(f"{user_hashed}.json", "r") as file:
         user_data = json.load(file)
+        backup_file.write(
+            "ORDER: [app name;;; username/e-mail;;; password;;; info (if any);;; app icon;;; id]"
+        )
         for item in user_data:
             app_name = decrypt_data(bytes(item[2:-1], "utf-8"))
             app_user = decrypt_data(bytes(user_data[item][0][2:-1], "utf-8"))
             app_pwd = decrypt_data(bytes(user_data[item][1][2:-1], "utf-8"))
             app_info = decrypt_data(bytes(user_data[item][2][2:-1], "utf-8"))
+            app_icon = user_data[item][3]
+            id = user_data[item][4]
 
-            if app_info != "":
-                app_info = f"info: {app_info}"
+            if app_info == "":
+                app_info = "none"
             backup_file.write(
-                f"[{app_name}]\nuser/e-mail: {app_user}\npassword: {app_pwd}\n{app_info}\n"
+                f"\n{app_name};;; {app_user};;; {app_pwd};;; {app_info};;; {app_icon};;; {id}"
             )
 
     show_message(
         "DATA BACKED UP",
         f"""Your data was successfully backed up!\nYou will find it in the file "{filename}".\n\nAnd remember! The data in that file is NOT encrypted!""",
     )
+
+
+def check_imported_item(app_user, app_pwd, id):
+    "AV, ffffffff, ffffffff, none, app_icon, 3ea13b02ccea489c866626946c3a9d14"
+    good_input = True
+    get_id = False
+    if not check_input(app_user):
+        good_input = False
+    if not check_input(app_pwd):
+        good_input = False
+    if len(id) != 32:
+        get_id = True
+
+    return good_input, get_id
+
+
+def load_backup_data(username):
+    """File name must be: "username_importbackup.txt"
+    and must be located in the "Download" folder for Android
+    or at the root of the program for a regular OS."""
+
+    available_apps = []
+    available_ids = []
+    apps_added = 0
+    apps_not_added = ""
+
+    save_path = ""
+    if kv_platform == "android":
+        save_path = "/storage/emulate/0/Download/"
+
+    user_data = load_user_json()
+    for item in user_data:
+        id = user_data[item][4]
+        app_name = decrypt_data(bytes(item[2:-1], "utf-8"))
+        print("app_name", app_name, id)
+
+        available_apps.append(app_name)
+        available_ids.append(id)
+
+    print("available_apps:", available_apps)
+
+    try:
+        with open(f"{save_path}{username}_importbackup.txt", "r") as file:
+            user_data = file.read()
+            user_data = user_data.split("\n")
+            for item in user_data[1:]:
+                item = item.split(";;;")
+                if len(item) == 6:
+                    app_name = item[0].strip()
+                    print("app_name:", app_name)
+                    id = item[5].strip()
+                    if app_name not in available_apps and id not in available_ids:
+                        app_user = item[1].strip()
+                        app_pwd = item[2].strip()
+                        app_info = item[3].strip()
+                        app_icon = item[4].strip()
+                        good_input, get_id = check_imported_item(app_user, app_pwd, id)
+                        if good_input:
+                            if get_id:
+                                id = uuid.uuid4().hex
+                            add_to_json(
+                                id, app_name, app_user, app_pwd, app_info, app_icon
+                            )
+                            apps_added += 1
+                        else:
+                            apps_not_added += f"{app_name}, "
+                            # apps_not_added.append(app_name)
+                    else:
+                        apps_not_added += f"{app_name}, "
+                        # apps_not_added.append(app_name)
+                else:
+                    apps_not_added += f"{app_name}, "
+                    # apps_not_added.append(app_name)
+            show_message(
+                "DATA IMPORTED",
+                f"{apps_added}/{len(user_data[1:])} entries were imported.\nApps not imported ({len(user_data[1:]) - apps_added}):\n{apps_not_added[:-2]}",
+            )
+            print(
+                f"{apps_added}/{len(user_data[1:])} entries were imported.\nApps not imported ({len(user_data[1:]) - apps_added}):\n{apps_not_added[:-2]}"
+            )
+
+    except FileNotFoundError:
+        show_message(
+            "FILE NOT FOUND",
+            f"""The backup file "{username}_importbackup.txt" was not found.""",
+        )
+        print(
+            f'IMPORT FILE NOT FOUND - The backup file "{username}_importbackup.txt" was not found.'
+        )

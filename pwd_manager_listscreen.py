@@ -1,5 +1,3 @@
-from kivy_garden.frostedglass import FrostedGlass
-
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton, MDButtonIcon, MDButtonText
@@ -111,8 +109,6 @@ class SearchBar(MDTextField):
 
     def on_text(self, instance, input_text):
         user_data = self.master_list
-        print("\tlist:\n", user_data)
-
         app = MDApp.get_running_app()
         listscreen = app.root.current_screen
         entries_list = listscreen.ids.entries_list
@@ -301,6 +297,7 @@ class ListScreen(MDScreen):
         self.ids.entries_list.remove_widget(self.ids.entries_list.children[entry_index])
         pwd_manager_utils.remove_entry_json(self.selected_item, current_item)
         self.reset_selected()
+        SearchBar().master_list.pop(current_item.app_name)
 
     def logout(self):
         """Logout method - Clears the main list created upon user's logging in.
